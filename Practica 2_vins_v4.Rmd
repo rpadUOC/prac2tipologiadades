@@ -1,0 +1,499 @@
+---
+title: "Pràctica 2"
+author: "Ramon Padilla i Àngel Flores"
+date: "23/05/2022"
+output: html_document
+---
+
+
+
+
+```{r setup, include=FALSE, cache = FALSE}
+#require("knitr")
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+#opts_knit$set(root.dir = "C:\\Users\\Ramon\\Desktop")
+```
+
+
+
+
+## 1- Descripció del dataset. Perquè és important i quina pregunta/problema pretén respondre?
+
+Es tracta d'un dataset que conté els indicadors dels vins. A més, el dataset també conté una variable que indica la qualitat del vi. D'aquesta manera, es podria estudiar quins indicadors estan més relacionats amb una vi de qualitat o, dit d'una altra manera, quines característiques tenen els vins de qualitat.
+
+
+```{r}
+if (!require('plotly')) install.packages('plotly'); library('plotly')
+if(!require(grid)) install.packages('grid', repos='http://cran.us.r-project.org'); library(grid)
+if(!require(gridExtra)) install.packages('gridExtra', repos='http://cran.us.r-project.org'); library(gridExtra)
+if(!require(tidyverse)) install.packages('tidyverse', repos='http://cran.us.r-project.org'); library(tidyverse)
+if(!require(corrplot)) install.packages('corrplot', repos='http://cran.us.r-project.org'); library(corrplot)
+if (!require('caTools')) install.packages('caTools');library('caTools')
+if (!require('rpart')) install.packages('rpart');library('rpart')
+if (!require('rpart.plot')) install.packages('rpart.plot');library('rpart.plot')
+if (!require('caret')) install.packages('caret');library('caret')
+if (!require('e1071')) install.packages('e1071');library('e1071')
+
+
+options(scipen = 999)
+df<-read.csv("winequality-red.csv", sep=",", na.strings = "NA")
+```
+
+Carreguem el Dataset i procedim a analitzar-lo.
+
+```{r}
+head(df)
+tail(df)
+str(df)
+nrow(df)
+summary(df)
+colSums(is.na(df))
+colSums(df == "")
+sum(duplicated(df))
+```
+Podem observar que no hi ha valors nuls ni buits però sí que hi ha molts màxims que s'allunyen molt de la mitjana i la mediana.
+Hi ha valors duplicats però no són pas preocupants, ja que és possible que dos vins tinguin exactament els mateixos nivells de cada variable. A més a més, no tenim els vins identificats de manera que el fet que dos registres contignuin els mateixos valors no ens permet assegurar que es tracti d'un duplicat.
+
+
+## 2- Integració i selecció de les dades d’interès a analitzar. Pot ser el resultat d’addicionar diferents datasets o una subselecció útil de les dades originals, en base a l’objectiu que es vulgui aconseguir.
+
+
+
+Es decideix crear una nova variable binària (qualitat_excellent) per indicar si un vi té una qualitat inferior a 7 (valor 1) o no (valor 0).
+
+Mostrem gràfiques on aparèixen les diferents variables i la seva relació amb un vi de qualitat excel·lent (qualitat >= 7).
+
+
+```{r, fig.width=10, warning=FALSE}
+
+# creació d'una nova variable per identificar el vi com excel·lent o no
+
+df$qualitat_excellent = ifelse(df$quality>= 7, 1, 0)
+
+df_backup = df
+
+df$qualitat_excellent = ifelse(df$qualitat_excellent== 1, "TRUE", "FALSE")
+
+grid.newpage()
+
+fa <- df%>%
+  ggplot(aes(x=fixed.acidity, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "fixed.acidity",
+       subtitle="fixed.acidity i qualitat excel·lent")
+
+va <- df%>%
+  ggplot(aes(x=volatile.acidity, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "volatile.acidity",
+       subtitle="volatile.acidity i qualitat excel·lent")
+
+ca <- df%>%
+  ggplot(aes(x=citric.acid, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "citric.acid",
+       subtitle="citric.acid i qualitat excel·lent")
+
+rs <- df%>%
+  ggplot(aes(x=residual.sugar, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "residual.sugar",
+       subtitle="residual.sugar i qualitat excel·lent")
+
+c <- df%>%
+  ggplot(aes(x=chlorides, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "chlorides",
+       subtitle="chlorides i qualitat excel·lent")
+
+fsd <- df%>%
+  ggplot(aes(x=free.sulfur.dioxide, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "free.sulfur.dioxide",
+       subtitle="free.sulfur.dioxide i qualitat excel·lent")
+
+tsd <- df%>%
+  ggplot(aes(x=total.sulfur.dioxide, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "total.sulfur.dioxide",
+       subtitle="total.sulfur.dioxide i qualitat excel·lent")
+
+d <- df%>%
+  ggplot(aes(x=density, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "density",
+       subtitle="density i qualitat excel·lent")
+
+pH <- df%>%
+  ggplot(aes(x=pH, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "pH",
+       subtitle="pH i qualitat excel·lent")
+
+s <- df%>%
+  ggplot(aes(x=sulphates, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "sulphates",
+       subtitle="sulphates i qualitat excel·lent")
+
+a <- df%>%
+  ggplot(aes(x=alcohol, fill=qualitat_excellent)) +
+  geom_density(alpha=0.4)+ 
+  labs(x= "alcohol",
+       subtitle="alcohol i qualitat excel·lent")
+
+grid.arrange(fa,va, ca, rs, c, fsd, tsd, d, pH, s, a, ncol=3)
+
+df = df_backup
+```
+
+Veiem que quan volatile.acidity o totla-sulfure.dioxide tenen valors baixos la qualitat té més probabilitats de ser excel·lent.
+Tanmateix, també veiem que quan citric.acid, sulphates o alcohol tenen valors alts la qualitat també té més probabilitats de ser excel·lent.
+
+Observem que les variables pH, free.sulfur.dioxide i residual sugar estan molt poc relacionades amb la qualitat i també estan molt poc relacionades amb qualitat excel·lent o no.
+
+Podriem plantejar eliminar aquestes variables, però s'ha considerat que al ser un dataset que tampoc té un nombre excessiu de variables i que la proporció de registres i número de variables és bona, no cal eliminar cap variable.
+
+
+
+## 3- Neteja de les dades.
+### 3.1. Les dades contenen zeros o elements buits? Gestiona cadascun d’aquests casos.
+
+No, no tenim valors nuls. Tenim valors 0 però podrien ser valors normals.
+
+### 3.2. Identifica i gestiona els valors extrems.
+
+D'altra banda, analitzem els outliers.
+
+```{r}
+paste0("Núm. registres abans de la neteja de outliers: " , nrow(df))
+
+boxplot(df$fixed.acidity ~ df$quality, xlab="quality", ylab="fixed.acidity")
+quantile(df$fixed.acidity, c(.999))
+df$quality[df$fixed.acidity > 15.6]
+df <- df[-c(which(df$fixed.acidity > 15.6,)), ]
+#Comprovem que el 99.9% dels valors es troben per sota de 15.6 i identifiquem 1 valor extrem
+
+boxplot(df$volatile.acidity ~ df$quality, xlab="quality", ylab="volatile.acidity")
+quantile(df$volatile.acidity, c(.999))
+df$quality[df$volatile.acidity > 1.33]
+df <- df[-c(which(df$volatile.acidity > 1.33,)), ]
+#Comprovem que el 99.9% dels valors es troben per sota de 1.33 i identifiquem 1 valor extrem
+
+boxplot(df$citric.acid ~ df$quality, xlab="quality", ylab="citric.acid")
+quantile(df$citric.acid, c(.999))
+df$quality[df$citric.acid > 0.78402]
+df <- df[-c(which(df$citric.acid > 0.78402,)), ]
+quantile(df$citric.acid, c(.001))
+df$quality[df$citric.acid < 0]
+#Comprovem que el 99.9% dels valors es troben per sota de 0.78402 i identifiquem 2 valors extrems
+
+boxplot(df$residual.sugar ~ df$quality, xlab="quality", ylab="residual.sugar")
+quantile(df$residual.sugar, c(.999))
+df$quality[df$residual.sugar > 15.4]
+df <- df[-c(which(df$residual.sugar > 15.4,)), ]
+quantile(df$residual.sugar, c(.001))
+df$quality[df$residual.sugar < 1.0794]
+df <- df[-c(which(df$residual.sugar < 1.0794,)), ]
+#Comprovem que el 99.9% dels valors es troben per sota de 15.4 i identifiquem 1 valor extrem
+#Comprovem que el 0.1% dels valors es troben per sota de 1.0794 i identifiquem 2 valors extrems
+
+boxplot(df$chlorides ~ df$quality, xlab="quality", ylab="chlorides")
+quantile(df$chlorides, c(.999))
+df$quality[df$chlorides > 0.524486]
+df <- df[-c(which(df$chlorides > 0.524486,)), ]
+quantile(df$chlorides, c(.001))
+df$quality[df$chlorides < 0.025156]
+df <- df[-c(which(df$chlorides < 0.025156,)), ]
+#Comprovem que el 99.9% dels valors es troben per sota de 0.524486 i identifiquem 2 valors extrems
+#Comprovem que el 99.9% dels valors es troben per sota de 0.025156 i identifiquem 2 valors extrems (els dos amb una qualitat de 7)
+
+
+boxplot(df$free.sulfur.dioxide ~ df$quality, xlab="quality", ylab="free Sulfur Dioxide")
+# comprovem que el valors extrems corresponen a valors per sobre del 3r quartil. 
+# Càlcul del límit on el 99,9% dels valors són per sota d'ell
+
+quantile(df$free.sulfur.dioxide, c(.999))
+#El 99,9% dels valors free.sulfur.dioxide són igual a 68 o menys
+
+df$quality[df$free.sulfur.dioxide > 68]
+df <- df[-c(which(df$free.sulfur.dioxide > 68,)), ]
+#Concretament en tenim un pel valor de quality = 6. L'eliminem.
+
+#free.sulfur.dioxide no sembla que tingui una relació directa amb quality. El valor de la mitjana de augmenta per valors de quality des de 3 fins 5, però a partir d'aqui la tendència és a reduir el seu valor.
+
+boxplot(df$total.sulfur.dioxide ~ df$quality, xlab="quality", ylab="total.sulfur.dioxide")
+# comprovem que el valors extrems corresponen a valors per sobre del 3r quartil. 
+# Càlcul del límit on el 99,9% dels valors són per sota d'ell
+quantile(df$total.sulfur.dioxide, c(.999))
+#El 99,9% dels valors  total.sulfur.dioxide són igual a 210.426 o menys
+
+df$quality[df$total.sulfur.dioxide > 210.426]
+df <- df[-c(which(df$total.sulfur.dioxide > 210.426,)), ]
+#Identifiquem 2 valors extrems que corresponen a quality = 7, ambdós.
+
+#Com a la variable anterior, total.sulfur.dioxide no sembla que tingui una relació directa amb quality. El valor de la mitjana de augmenta per valors de quality des de 3 fins 5, però a partir d'aqui la tendència és a reduir el seu valor.
+boxplot(df$density ~ df$quality, xlab="quality", ylab="density")
+
+# comprovem que el valors extrems corresponen a valors per sobre del 3r quartil i per sota del primer
+# Càlcul del límit on el 99,9% dels valors són per sota d'ell
+quantile(df$density, c(.999))
+# Càlcul del límit on el 0,1% dels valors són per sota d'ell
+quantile(df$density, c(.001))
+#El 99,9% dels valors  density són igual a 1.00369 o menys i un 0,1% són per sota de 0.9901477
+
+df$quality[df$density > 1.003697]
+df$quality[df$density < 0.9901477]
+#No identifiquem valors extrems
+#density ens ofereix una tendència de la mitjana que es redueix quan augmenta el valor de quality.
+
+boxplot(df$pH ~ df$quality, xlab="quality", ylab="pH")
+# comprovem que el valors extrems corresponen a valors per sobre del 3r quartil i per sota del primer
+# Càlcul del límit on el 99,9% dels valors són per sota d'ell
+quantile(df$pH, c(.999))
+# Càlcul del límit on el 0,1% dels valors són per sota d'ell
+quantile(df$pH, c(.001))
+
+#El 99,9% dels valors  pH són igual a 3.94422 o menys i un 0,1% són per sota de 2.86598
+df$quality[df$pH >  3.94422 ]
+df <- df[-c(which(df$pH >  3.94422,)), ]
+df$quality[df$pH < 2.86598]
+df <- df[-c(which(df$pH < 2.86598,)), ]
+
+#Identifiquem 4 valors extrems que corresponen a quality = 6 (3) i quality = 4 (1).
+#pH ens ofereix una tendència de la mitjana que es redueix quan augmenta el valor de quality.
+boxplot(df$sulphates ~ df$quality, xlab="quality", ylab="sulphates")
+
+# comprovem que el valors extrems corresponen a valors per sobre del 3r quartil
+# Càlcul del límit on el 99,9% dels valors són per sota d'ell
+quantile(df$sulphates, c(.999))
+
+#El 99,9% dels valors sulphates són igual a 1.96206 o menys
+df$quality[df$sulphates > 1.96206]
+df <- df[-c(which(df$sulphates > 1.96206,)), ]
+#Identifiquem 2 valors extrems que corresponen a quality igual a 5 i 4
+#sulphates ens ofereix una tendència de la mitjana que es augmenta al mateix temps que augmenta el valor de quality.
+boxplot(df$alcohol ~ df$quality, xlab="quality", ylab="alcohol")
+
+# comprovem que el valors extrems corresponen a valors per sobre del 3r quartil
+# Càlcul del límit on el 99,9% dels valors són per sota d'ell
+quantile(df$alcohol, c(.999))
+
+#El 99,9% dels valors  alcohol són igual a 14 o menys
+df$quality[df$alcohol > 14]
+#No observem valors per sobre de 14
+
+
+paste0("Núm. registres després de la neteja de outliers: " , nrow(df))
+```
+
+S'observa que hi ha molts valors extrems però podrien ser perfectament possibles. A més, esborrar-los suposaria perdre un percentatge important dels registres i imputar-los podria esbiaixar el dataset.
+Per tant, es decideix eliminar aquells outliers que es troben en el 0.01% superior o inferior. Originalment teniem 1599 registres i al final en tenim 1582. Per tant, hem eliminat 17 outliers.
+
+
+
+
+
+## 4- Anàlisi de les dades.
+### 4.1. Selecció dels grups de dades que es volen analitzar/comparar (p. e., si es volen comparar grups de dades, quins són aquests grups i quins tipus d’anàlisi s’aplicaran?).
+
+
+Les preguntes que farem tenen a veure amb la qualitat del vi i per aixó hem definit la variable qualitat_excellent, binària, que ens servirà per analitzar la normalitat i aplicar les proves i donar resposta a les preguntes.
+
+
+
+
+
+### 4.2. Comprovació de la normalitat i homogeneïtat de la variància.
+
+
+```{r}
+
+# anàlisi de la normalitat per cada variable:
+
+  alpha <- 0.05
+
+  for(x in colnames(df)) {
+    
+      # Diagrames de densidad
+      par(mfrow=c(1,3))
+      hist(df[,x],main = "Histograma de frequències",xlab = x) # histograma
+      qqnorm(df[,x]) # gràfic quantile
+      qqline(df[,x])
+      
+      
+      # Test de Saphiro-Wilk
+     
+      pvalue <- shapiro.test(df[,x])$p.value
+      print(paste('test de Saphiro-Wilk de la variable ', x , ' és ',pvalue))
+      
+   }
+```
+
+Fent el diagrama de frequències i el Q-Q plot amb totes les variables, tot i que tenim gràfiques on no s'ajusten a la línia de la distribució teòrica i prenen una distribució exponencial.  
+
+Fent el contrast amb el test de Saphiro-Wilk, tots els pvalue són per sota de 0.05, com a interval de confiança, que ens diria que tenen una distribució no normal.
+
+Pel Teorema del Límit Central, degut al volum de dades, podem asumir que la mitjana mostral segueix una distribució normal.
+
+
+A l'apartat on fem contrast d'hipòtesi analitzem la variança.
+
+### 4.3. Aplicació de proves estadístiques per comparar els grups de dades. En funció de les dades i de l’objectiu de l’estudi, aplicar proves de contrast d’hipòtesis, correlacions, regressions, etc. Aplicar almenys tres mètodes d’anàlisi diferents.
+
+
+
+Correlacions
+
+```{r}
+set.seed(123)
+
+cor(df) %>%
+  as.data.frame() %>%
+  mutate(var1 = rownames(.)) %>%
+  gather(var2, value, -var1) %>%
+  arrange(desc(value)) %>%
+  group_by(value) %>%
+  filter(row_number()==1)
+
+dfcor <- cor(df[,-13])
+corrplot(dfcor, method = "color", addCoef.col = "black",number.cex = .6, tl.col = "black", tl.srt = 90, diag = FALSE)
+
+
+```
+Les variables que més influeixen en la qualitat del vi són l'alcohol, volatile.acidity, sulphates, citric.acid i total.sulfur.dioxide
+
+Contrast d’hipòtesis
+
+Treballarem amb preguntes relacionades amb la influència respecte de la qualitat del vi. Fem dos conjunts, un de bons i altre de no tan bons vins i plantegem les qüestions:
+
+```{r}
+# separació en dos conjunts vi_bo i vi_dolent
+
+vi_bo <- df$alcohol[df$qualitat_excellent==1]
+vi_dolent <- df$alcohol[df$qualitat_excellent==0]
+```
+
+Analitzarem la variable més influent, i ens preguntem: diferència entre la graduació de alcohol per veure si els bons vins tenen més alcohol que els dolents
+
+```{r}
+
+# fem una anàlisi visual
+
+# diagrama de caixa. notch = TRUE representa ic = 95%
+
+boxplot(vi_bo,vi_dolent, main = "Comparativa alcohol per Excel·lència del vi",
+          ylab = "Graus alcohol", names = c("Vi bo","Vi dolent"))
+
+
+```
+
+La mitjana al vi bo visualment és per sobre de la mitjana al vi dolent. Ho comprovem amb el test.
+
+Es tracta d’una comparació de mitjanes en poblacions normals independents:
+H0 : μ1 − μ2 = 0
+H1 : μ1 − μ2 > 0
+on μ1 denota la mitjana de graus alcohol per vi bo i μ2 la mitjana de graus alcohol per vi dolent.
+
+Com que pel TLC (Teorema límit central) hem vist que asumim la normalitat, estudiem la homocedasticitat de la variança.
+
+```{r}
+
+var.test(vi_bo, vi_dolent)
+```
+El contrast de variàncies ens mostra un valor p més gran que 0.05 i per tant es pot assumir igualtat de variàncies en les dues poblacions.
+
+```{r}
+
+# contrast
+d <- 0 # Diferència entre mitjanes
+t.test(vi_bo, vi_dolent, alternative="greater", mu = d, var.equal=FALSE)
+
+```
+Resposta:  El pvalor del test (0) és inferior al nivell de significació (0.05).  Per tant, podem rebutjar la hipòtesi nul·la a favor de l’alternativa i podem concloure que en mitjana la graduació d'alcohol als vins bons és més gran que als vins dolents.
+
+Regressió:
+
+Primer farem un estudi per avaluar un model lineal que expliqui la variable quality en funció de l'alcohol
+
+```{r}
+lm0 <- lm(quality ~ alcohol, data = df)
+summary(lm0)
+```
+La mitjana dels residus és -0,185, molt proper a 0, un dels supòsits per validar el mètode dels mínims quadrats
+
+El coeficient de determinació té un valor 0,2333, això vol dir que el nostre model ens explica només el 23,33% de variància de les observacions.
+
+Afegim les altres 4 variables més relacionades per veure si millora el model
+
+```{r}
+lm1 <- lm(quality ~ alcohol + volatile.acidity +  sulphates + citric.acid + total.sulfur.dioxide, data = df)
+summary(lm1)
+```
+La mitjana dels residus és -0.05829, inferior a l'anterior model (-0,185), molt més proper a 0.
+
+
+El coeficient de determinació té un valor 0.3543, això vol dir que el nostre model ens explica només el 35,43 % de variància de les observacions. Millora el model fent servir només l'alcohol
+
+
+```{r}
+df2 = df
+
+##Normalitzem les variables per poder aplicar el SVM
+
+df2$alcohol <- df2$alcohol /max(df2$alcohol)
+df2$volatile.acidity <- df2$volatile.acidity /max(df2$volatile.acidity)
+df2$sulphates <- df2$sulphates /max(df2$sulphates)
+df2$citric.acid <- df2$citric.acid /max(df2$citric.acid)
+df2$total.sulfur.dioxide <- df2$total.sulfur.dioxide /max(df2$total.sulfur.dioxide)
+
+sample_data = sample.split(df2, SplitRatio = 0.8)
+train_data <- subset(df2, sample_data == TRUE)
+test_data <- subset(df2, sample_data == FALSE)
+
+svm1 = svm(formula = qualitat_excellent ~ alcohol + volatile.acidity +  sulphates + citric.acid + total.sulfur.dioxide, data = train_data,
+                 type = 'C-classification',
+                 kernel = 'sigmoid')
+
+pred<-predict(svm1, test_data)
+
+confusionMatrix(table(pred, test_data$qualitat_excellent))
+
+```
+
+Si intentem fer un model predicitu amb Support Vector Machine obtenim una accuracy del 82.7% que és força alt. També tenim una sensibilitat alta, però en canvi una especificitat baixa.
+
+En concret, hem encertat 302 prediccions i n'hem fallat 63. Hem obtingut 25 falsos positius i 38 falsos negatius. El major problema és que el model té tendència a dir que el vi no és de qualitat excel·lent, llavors normalment encerta perquè la majoria de vins no són excel·lents, però si ens fixem en els positius veiem que n'encerta una minoria (12 de 50 = 24%). 
+
+
+```{r}
+svm1 = svm(formula = quality ~ alcohol + volatile.acidity +  sulphates + citric.acid + total.sulfur.dioxide, data = train_data,
+                 type = 'C-classification',
+                 kernel = 'sigmoid')
+
+pred<-predict(svm1, test_data)
+
+confusionMatrix(table(pred, test_data$quality))
+
+```
+
+Si enlloc de comprovar que la qualitat sigui excel·lent intentem predir la qualitat veiem que per vins de qualitat notable (5-7) sol apropar-se al valor real.
+És cert que la accuracy, sensibilitat... són força dolentes, però l'error no és tan gran, sobretot en qualitats notables.
+És a dir, un vi que té qualitat 6 sol predir que té qualitat 5, 6 o 7. En altres paraules, el model seria força bo per estimar els vins de qualitat mitja-alta permetent-li un marge d'error de 1 punt per sobre o per sota.
+
+Una de les possibles raones de per què el model no és gens bo amb qualitats fora del rang 5-7 podria ser que la gran majoria de registres tenen valors entre 5 i 7, de manera que hi ha una sobrerepresentació d'aquestes qualitats i una sotarepresentació d ela resta de qualitats. Això fa que el model s'ajusti millor per qualitats 5-7 i no pas tan per altres qualitats que estan sotarepresentades.
+
+
+
+## 6. Resolució del problema. A partir dels resultats obtinguts, quines són les conclusions? Els resultats permeten respondre al problema?
+
+Finalment, podem concloure que com majors són els valors de citric.acid, sulphates i alcohol més qualitat sol tenir el vi.
+D'altra banda, com menors siguin els valors de volatile.acidity i total.sulfur.dioxide el vi també té tendència a ser de major qualitat.
+
+Els models predicitus no han obtingut massa bons resultats. Tanmateix, en el cas de SVM sí que obtenia uns resultats força bons a l'hora d'estimar vins de qualitat mitja-alta.
+
+
+
+
+
+ ![Taula de contribucions](C:/Users/Ramon/Desktop/componentsGrup.jpg)
