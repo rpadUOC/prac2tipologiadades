@@ -25,4 +25,5 @@ Pràctica 2 TCVD.pdf: document pdf amb les respostes del punts de la Pràctica
 
 <h4>VÍDEO:</h4>
 
-Pdte
+https://drive.google.com/file/d/1Fanv4FOrO_yJVkouvGkTxng6AAp8g38_/view?usp=sharing
+
