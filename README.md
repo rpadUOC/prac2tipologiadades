@@ -1,15 +1,28 @@
-#prac1_tipologiadades
-#Oferta immobiliària a Terrassa. Millors preus
-#Components del grup
+# prac2_tipologiadades
+<h1> Red Wine Quality </h1>
+
+<h2> Components del grup </h2>
+
 Ramon Padilla Mensa i Àngel Flores Gómez
 
-#Descripció dels fitxers del repositori
-#Codi
-houses_sale_scrapper.ipynb: Codi per obtenir les dades del Portal Immobiliari amb el llistat dels habitatges en venda. En deixem també la versió houses_rent_scrapper.ipynb que obtindria els lloguers.
-Xollos.ipynb: Codi pel tractament del llistat d’habitatges i, mitjançant un arbre de decisió, crear i entrenar un model per obtenir el llistat dels “xollos”, és a dir, habitatges anunciats per un preu per sota del preu de la predicció.
 
-#Fitxers de dades
-dataset_houses_1.csv és el llistat obtingut de l’stock d’habitatges en venda
-dataset_xollos2.csv és el producte final amb la llista d’habitatges amb preu per sota de l’estimat.
+<h2> Descripció dels fitxers del repositori </h2>
 
-#VÍDEO:
+<h3>Codi</h3>
+Practica 2_vins_v4.Rmd:  Codi amb l'anàlisi realitzar anb les dades dels vins proporcionades
+
+Practica 2_vins_v4.html: Execució del codi en format html
+
+<h3>Fitxers de dades</h3>
+
+winequality-red.csv és el fitxer origen amb les dades dels vins negres utlitzats per l'anàlisi
+
+
+<h4>Respostes</h4>
+
+Pràctica 2 TCVD.pdf: document pdf amb les respostes del punts de la Pràctica
+
+
+<h4>VÍDEO:</h4>
+
+Pdte
